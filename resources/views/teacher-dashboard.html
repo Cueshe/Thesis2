@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+        .glass-card {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .student-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px -5px var(--glow-color, rgba(0,0,0,0.1));
+        }
+        /* Modal Animation */
+        .modal-content {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        /* Active Sort Button */
+        .sort-btn-active {
+            background-color: #4f46e5 !important; /* indigo-600 */
+            color: white !important;
+            box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.39);
+        }
+        /* Chart Hover effect */
+        #distributionChart {
+            cursor: pointer;
+        }
+        /* Custom Scrollbar */
+        #studentGrid::-webkit-scrollbar, #attendanceList::-webkit-scrollbar, #classesList::-webkit-scrollbar {
+            width: 8px;
+        }
+        #studentGrid::-webkit-scrollbar-track, #attendanceList::-webkit-scrollbar-track, #classesList::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+        }
+        #studentGrid::-webkit-scrollbar-thumb, #attendanceList::-webkit-scrollbar-thumb, #classesList::-webkit-scrollbar-thumb {
+            background: rgba(79, 70, 229, 0.5); /* Semi-transparent indigo */
+            border-radius: 10px;
+        }
+        #studentGrid::-webkit-scrollbar-thumb:hover, #attendanceList::-webkit-scrollbar-thumb:hover, #classesList::-webkit-scrollbar-thumb:hover {
+            background: rgba(79, 70, 229, 0.7);
+        }
+
+        /* Progress Ring */
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.5s ease-out;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        .print-only { display: none; }
+        
+        /* Section Header Styling */
+        .section-title {
+            border-bottom: 2px solid rgba(79, 70, 229, 0.2);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem !important;
+        }
+
+        /* Styling for stat cards and attendance box */
+        #generalAnalytics .glass-card, #attendanceSection .glass-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        #generalAnalytics .glass-card:hover, #attendanceSection .glass-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        
+        /* Active Tab */
+        .tab-btn.active {
+            border-color: #4f46e5; /* indigo-600 */
+            color: #4f46e5;
+            font-weight: 600;
+        }
+        
+        /* Active Sidebar Class */
+        .class-item.active {
+            background-color: #e0e7ff; /* indigo-100 */
+            color: #4338ca; /* indigo-700 */
+            border-color: #a5b4fc; /* indigo-300 */
+        }
+        .class-item.active .font-semibold {
+             color: #3730a3; /* indigo-800 */
+        }
+
+        /* Dropdown transition */
+        .dropdown-menu {
+            transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+        }
+        .dropdown-menu.hidden {
+            opacity: 0;
+            transform: translateY(-10px);
+            pointer-events: none;
+        }
+        .dropdown-menu:not(.hidden) {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+
+        /* Print-specific styles */
+        @media print {
+            body { background: none !important; }
+            body > *:not(#modalOverlay) { display: none !important; }
+            #modalOverlay { position: static; display: block !important; background: none !important; padding: 0; width: 100%; height: auto; overflow: visible !important; }
+            #modalContent { width: 100% !important; max-width: 100% !important; height: auto !important; max-height: none !important; box-shadow: none !important; border: none !important; overflow: visible; }
+            #modalBody { padding: 0.75in !important; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .print-only, .print-only * { color: black !important; visibility: visible; }
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen">
+
+    <!-- START: NEW HEADER -->
+    <nav class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Left: Logo/Title -->
+                <div class="flex-shrink-0 flex items-center gap-2">
+                     <svg class="h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                    </svg>
+                    <span class="font-bold text-xl">Teacher Dashboard</span>
+                </div>
+                
+                <!-- Right: Profile Dropdown -->
+                <div class="relative">
+                    <button id="profileDropdownButton" class="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 p-2 rounded-full transition">
+                        <span class="font-medium text-sm hidden sm:block">Teacher</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 rounded-full bg-indigo-200 text-indigo-600 p-1" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500 hidden sm:block" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    
+                    <!-- Dropdown Menu -->
+                    <div id="profileDropdownMenu" class="dropdown-menu hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-slate-200 py-1 z-50">
+                        <a href="#" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 transition-colors">Settings</a>
+                        <a href="#" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 transition-colors">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <!-- END: NEW HEADER -->
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div class="flex gap-6">
+            <aside id="sidebar" class="w-72 border-r pr-4 flex-shrink-0">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Your classes</h3>
+                    <button id="createClassBtn" title="Create new class" class="text-sm bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded-md transition">Create</button>
+                </div>
+                <div id="classesList" class="space-y-3 max-h-[80vh] overflow-y-auto">
+                    <!-- Class items will be injected here -->
+                </div>
+            </aside>
+
+            <main id="mainArea" class="flex-1">
+                <div id="emptyState" class="bg-white border rounded-xl p-8 flex flex-col items-center justify-center text-center">
+                    <svg class="h-16 w-16 text-indigo-300 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                    </svg>
+                    <h2 class="text-2xl font-bold mb-2">Welcome to Your Dashboard</h2>
+                    <p class="text-slate-600 mb-6">Create a class or select one from the sidebar to view student analytics and manage classwork.</p>
+                    <div>
+                        <button id="emptyCreateBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-md mr-2">Create class</button>
+                        <button id="importSampleBtn" class="px-4 py-2 border rounded-md">Import sample</button>
+                    </div>
+                </div>
+
+                <div id="classView" class="hidden">
+                    <div id="classBanner" class="rounded-xl p-6 mb-6 flex items-center justify-between bg-white border shadow-sm">
+                        <div>
+                            <h1 id="classTitle" class="text-2xl font-bold">Class Name</h1>
+                            <p id="classMeta" class="text-sm text-slate-600">Section • Subject • Room</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button id="backToListBtn" class="px-3 py-1 border rounded-md text-sm hover:bg-slate-100">Back</button>
+                            
+                            <!-- WRAPPER for delete functionality -->
+                            <div id="deleteWrapper"> 
+                                <button id="deleteClassBtn" class="px-3 py-1.5 border border-red-200 rounded-md text-sm text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-all duration-150 flex items-center gap-1.5 hidden group">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:-translate-y-px transition-transform duration-150" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    Delete
+                                </button>
+                                <!-- New Confirmation Box -->
+                                <div id="deleteConfirmBox" class="hidden flex items-center gap-2">
+                                    <span class="text-sm font-medium text-red-700">Are you sure?</span>
+                                    <button id="confirmDeleteYes" class="px-3 py-1.5 bg-red-600 text-white rounded-md text-sm font-semibold hover:bg-red-700 transition">Yes</button>
+                                    <button id="confirmDeleteNo" class="px-3 py-1.5 border border-slate-300 rounded-md text-sm font-semibold hover:bg-slate-100 transition">No</button>
+                                </div>
+                            </div>
+                            <!-- END WRAPPER -->
+                        </div>
+                    </div>
+
+                    <nav class="flex space-x-4 border-b border-slate-200 mb-6">
+                        <button class="tab-btn active" data-tab="roster">Student Roster</button>
+                        <button class="tab-btn" data-tab="classwork">Classwork</button>
+                        <button class="tab-btn" data-tab="attendance">Attendance</button>
+                    </nav>
+
+                    <div id="tabContent">
+                        
+                        <div id="rosterTabContent" class="tab-pane active">
+                            <section id="generalAnalytics" class="mb-8">
+                                <h2 class="text-2xl font-bold section-title">Class Overview</h2>
+                                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    <div class="glass-card rounded-xl p-6 col-span-1 lg:col-span-2">
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div class="flex items-center gap-4">
+                                                <div class="p-3 rounded-full bg-teal-100 text-teal-600">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                </div>
+                                                <div>
+                                                    <div class="text-sm text-slate-500">Attendance Rate</div>
+                                                    <div id="attendanceRate" class="text-3xl font-bold text-slate-800">0%</div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-4">
+                                                <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>
+                                                </div>
+                                                <div>
+                                                    <div class="text-sm text-slate-500">Class Average</div>
+                                                    <div id="classAverage" class="text-3xl font-bold text-slate-800">0%</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-6">
+                                            <h4 class="font-semibold mb-1 text-slate-700">Overall Insight</h4>
+                                            <p id="overallInsight" class="text-sm text-slate-500">Loading insights...</p>
+                                        </div>
+                                    </div>
+                                    <div class="glass-card rounded-xl p-6">
+                                        <h4 class="text-base font-semibold text-slate-700 mb-2">Student Status</h4>
+                                        <div class="relative h-56">
+                                            <canvas id="distributionChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section id="studentGridContainer">
+                                <h2 class="text-2xl font-bold section-title">Student Roster</h2>
+                                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                                    <input type="text" id="searchBar" placeholder="Search by last name..." class="w-full md:w-64 p-2 border rounded-lg focus:ring-2 focus:ring-indigo-400">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="text-sm font-semibold text-slate-600 mr-2">Sort by:</span>
+                                        <button class="sort-btn sort-btn-active" data-sort="name">Name</button>
+                                        <button class="sort-btn" data-sort="status">Status</button>
+                                        <button class="sort-btn" data-sort="grade">Grade</button>
+                                    </div>
+                                    <button id="focusGroupBtn" class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold text-sm hover:bg-red-600 transition">View Focus Group</button>
+                                </div>
+                                
+                                <div id="filterStatus" class="hidden items-center justify-between p-3 bg-indigo-50 border border-indigo-200 rounded-lg mb-4">
+                                    <span id="filterText" class="text-sm text-indigo-700"></span>
+                                    <button id="resetFilter" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800">Clear filter</button>
+                                </div>
+
+                                <div id="studentGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[600px] overflow-y-auto pr-2">
+                                    <!-- Student cards will be injected here -->
+                                </div>
+                                <div id="noResults" class="hidden text-center py-12">
+                                    <p class="text-slate-500">No students found matching your criteria.</p>
+                                </div>
+                            </section>
+                        </div>
+                        
+                        <div id="classworkTabContent" class="tab-pane hidden">
+                            <section id="modulesSection" class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <h2 class="text-2xl font-bold section-title flex-1">Classwork</h2>
+                                    <button id="addModuleBtn" class="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600">Add Module</button>
+                                </div>
+                                <div id="modulesList" class="space-y-3">
+                                    <!-- Modules will be injected here -->
+                                </div>
+                            </section>
+                        </div>
+                        
+                        <div id="attendanceTabContent" class="tab-pane hidden">
+                            <section id="attendanceSection">
+                                <div class="glass-card rounded-xl p-6 max-w-4xl mx-auto">
+                                    <h2 id="attendanceTitle" class="text-2xl font-bold mb-4 text-slate-800">Today's Attendance</h2>
+                                    <div id="attendanceList" class="space-y-2 max-h-[70vh] overflow-y-auto pr-2">
+                                        <!-- Attendance items will be injected here -->
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Student Details Modal -->
+    <div id="modalOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div id="modalContent" class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div id="modalHeader" class="flex justify-between items-center p-6 border-b border-slate-200 sticky top-0 bg-white z-10 no-print">
+                <h2 id="modalTitle" class="text-2xl font-bold"></h2>
+                 <div class="flex items-center gap-2">
+                    <button id="printReportBtn" title="Print Report" class="text-slate-500 hover:text-indigo-600 transition-colors p-2 no-print hidden">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                    </button>
+                    <button id="closeModal" title="Close" class="text-slate-400 hover:text-slate-600 transition-colors p-1 no-print">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                 </div>
+            </div>
+            <div id="modalBody" class="p-6">
+                <!-- Student modal content will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Class Modal -->
+    <div id="createClassModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-lg">
+            <h3 class="text-xl font-bold mb-4">Create class</h3>
+            <form id="createClassForm" class="space-y-3">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Class name</label>
+                    <input name="name" required class="w-full p-2 border rounded-md" />
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Section</label>
+                        <input name="section" class="w-full p-2 border rounded-md" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Subject</label>
+                        <input name="subject" class="w-full p-2 border rounded-md" />
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Room</label>
+                    <input name="room" class="w-full p-2 border rounded-md" />
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" id="cancelCreateClass" class="px-4 py-2 border rounded-md">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Module Modal -->
+    <div id="createModuleModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-lg">
+            <h3 class="text-xl font-bold mb-4">Add module</h3>
+            <form id="createModuleForm" class="space-y-3">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                    <input name="title" required class="w-full p-2 border rounded-md" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                    <textarea name="description" class="w-full p-2 border rounded-md"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Due date</label>
+                    <input type="date" name="dueDate" class="w-full p-2 border rounded-md" />
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" id="cancelCreateModule" class="px-4 py-2 border rounded-md">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-amber-500 text-white rounded-md">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- COMBINED SCRIPT ---
+
+        // --- Global State ---
+        const STORAGE_KEY = 'q2l_classes_v1';
+        let classes = [];
+        let activeClassId = null;
+        let students = []; // Holds students for the *active* class
+        
+        // Chart instances
+        let masteryChartInstance;
+        let progressChartInstance;
+        let distributionChartInstance;
+        
+        // Analytics state
+        let currentSort = { key: 'name', order: 'asc' };
+        let activeStatusFilter = null;
+        let focusGroupSort = { key: 'name', order: 'asc' };
+
+        // --- MOCK DATA GENERATION ---
+        function generateRandomStudents(count) {
+            const firstNames = ["Juan", "Maria", "Jose", "Sofia", "Lucas", "Isabella", "Andres", "Althea", "Mateo", "Lian", "Miguel", "Angela", "Gabriel", "Samantha", "Elijah", "Chloe", "James", "Bea"];
+            const lastNames = ["Dela Cruz", "Gomez", "Reyes", "Santos", "Garcia", "Lim", "Tan", "Fernandez", "Rodriguez", "Flores", "Ramos", "Aquino", "Mendoza", "Castillo"];
+            const middleInitials = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"];
+            const grades = ["Grade 7", "Grade 8", "Grade 9", "Grade 10"];
+            const skills = ["Reading Comprehension", "Vocabulary", "Pronunciation"];
+            const resources = {
+                "Reading Comprehension": [ { title: "Comprehension Practice Worksheet", url: "#" }, { title: "Main Idea Video Tutorial", url: "#" } ],
+                "Vocabulary": [ { title: "Context Clues Exercise", url: "#" }, { title: "Interactive Vocabulary Game", url: "#" } ],
+                "Pronunciation": [ { title: "Phonics 'sh' Sound Video", url: "#" }, { title: "Record & Compare Pronunciation Tool", url: "#" } ],
+            };
+            const newStudents = [];
+
+            for (let i = 1; i <= count; i++) {
+                const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+                const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+                const middleInitial = middleInitials[Math.floor(Math.random() * middleInitials.length)];
+                const name = `${lastName}, ${firstName} ${middleInitial}.`;
+                const grade = grades[Math.floor(Math.random() * grades.length)];
+                const attendance = null;
+                
+                const progressHistory = Array.from({length: 5}, () => Math.floor(Math.random() * 41) + 60);
+                const score = progressHistory[progressHistory.length - 1];
+
+                let status;
+                let avatarColor;
+                let insight;
+                const struggleSkill = skills[Math.floor(Math.random() * skills.length)];
+                
+                if (score >= 90) {
+                    status = "Excelling";
+                    avatarColor = "dcfce7/14532d"; // green
+                    insight = `${firstName} is excelling in all areas. Consider introducing advanced materials to maintain engagement.`;
+                } else if (score >= 75) {
+                    status = "On Track";
+                    avatarColor = "dbeafe/1e40af"; // blue
+                    insight = `${firstName}'s scores indicate some difficulty, particularly with ${struggleSkill}. Reinforcing this area could be beneficial.`;
+                } else {
+                    status = "Struggling";
+                    avatarColor = "fecaca/991b1b"; // red
+                    insight = `${firstName}'s scores indicate some difficulty, particularly with ${struggleSkill}. Review recent topics and provide targeted support.`;
+                }
+                
+                const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`;
+
+                newStudents.push({
+                    id: i, name, grade, status, attendance,
+                    avatar: `https://placehold.co/80x80/${avatarColor}?text=${initials}`,
+                    keyMetric: { label: "Avg. Comprehension", score: `${score}%` },
+                    analytics: {
+                        mastery: { "Reading Comprehension": Math.floor(Math.random() * 51) + 50, "Vocabulary": Math.floor(Math.random() * 51) + 50, "Pronunciation": Math.floor(Math.random() * 51) + 50 },
+                        insight: insight,
+                        progressHistory: progressHistory,
+                        suggestedResources: resources[struggleSkill],
+                        goal: { text: "", progress: 0 },
+                    },
+                    notes: "",
+                });
+            }
+            return newStudents;
+        }
+
+        // --- DOM ELEMENTS CACHE ---
+        // (Get all elements in one place)
+        const els = {};
+        document.addEventListener('DOMContentLoaded', () => {
+            // Header
+            els.profileDropdownButton = document.getElementById('profileDropdownButton');
+            els.profileDropdownMenu = document.getElementById('profileDropdownMenu');
+
+            // Main containers
+            els.sidebar = document.getElementById('sidebar');
+            els.mainArea = document.getElementById('mainArea');
+            els.emptyState = document.getElementById('emptyState');
+            els.classView = document.getElementById('classView');
+            els.tabContent = document.getElementById('tabContent');
+
+            // Class list
+            els.classesList = document.getElementById('classesList');
+            els.createClassBtn = document.getElementById('createClassBtn');
+            els.emptyCreateBtn = document.getElementById('emptyCreateBtn');
+            els.importSampleBtn = document.getElementById('importSampleBtn');
+            
+            // Class View
+            els.classTitle = document.getElementById('classTitle');
+            els.classMeta = document.getElementById('classMeta');
+            els.backToListBtn = document.getElementById('backToListBtn');
+            els.deleteClassBtn = document.getElementById('deleteClassBtn');
+            
+            // Delete Confirmation
+            els.deleteWrapper = document.getElementById('deleteWrapper');
+            els.deleteConfirmBox = document.getElementById('deleteConfirmBox');
+            els.confirmDeleteYes = document.getElementById('confirmDeleteYes');
+            els.confirmDeleteNo = document.getElementById('confirmDeleteNo');
+            
+            els.tabButtons = document.querySelectorAll('.tab-btn');
+
+            // Classwork Tab
+            els.modulesSection = document.getElementById('modulesSection');
+            els.modulesList = document.getElementById('modulesList');
+            els.addModuleBtn = document.getElementById('addModuleBtn');
+            
+            // Roster Tab
+            els.studentGrid = document.getElementById('studentGrid');
+            els.searchBar = document.getElementById('searchBar');
+            els.sortButtons = document.querySelectorAll('.sort-btn');
+            els.noResultsDiv = document.getElementById('noResults');
+            els.focusGroupBtn = document.getElementById('focusGroupBtn');
+            els.distributionChartCanvas = document.getElementById('distributionChart').getContext('2d');
+            els.filterStatusDiv = document.getElementById('filterStatus');
+            els.filterText = document.getElementById('filterText');
+            els.resetFilterBtn = document.getElementById('resetFilter');
+            els.attendanceRate = document.getElementById('attendanceRate');
+            els.classAverage = document.getElementById('classAverage');
+            els.overallInsight = document.getElementById('overallInsight');
+            
+            // Attendance Tab
+            els.attendanceTitle = document.getElementById('attendanceTitle');
+            els.attendanceList = document.getElementById('attendanceList');
+
+            // Modals (General)
+            els.modalOverlay = document.getElementById('modalOverlay');
+            els.modalContent = document.getElementById('modalContent');
+            els.modalTitle = document.getElementById('modalTitle');
+            els.modalBody = document.getElementById('modalBody');
+            els.closeModalBtn = document.getElementById('closeModal');
+            els.printReportBtn = document.getElementById('printReportBtn');
+
+            // Create Class Modal
+            els.createClassModal = document.getElementById('createClassModal');
+            els.createClassForm = document.getElementById('createClassForm');
+            els.cancelCreateClass = document.getElementById('cancelCreateClass');
+            
+            // Create Module Modal
+            els.createModuleModal = document.getElementById('createModuleModal');
+            els.createModuleForm = document.getElementById('createModuleForm');
+            els.cancelCreateModule = document.getElementById('cancelCreateModule');
+
+            // --- INITIALIZE ---
+            initializeAllEventListeners();
+            loadClasses();
+            renderClasses();
+            
+            // Show empty state if no classes
+            if (classes.length === 0) {
+                els.emptyState.classList.remove('hidden');
+                els.classView.classList.add('hidden');
+            } else {
+                // Optionally, open the first class
+                // openClass(classes[0].id);
+                // Or, just show the empty state until user clicks
+                els.emptyState.classList.remove('hidden');
+                els.classView.classList.add('hidden');
+            }
+        });
+
+        // --- RENDER & DISPLAY FUNCTIONS (ANALYTICS) ---
+        function renderStudentGrid(studentsToRender) {
+            if (!els.studentGrid) return;
+            els.studentGrid.innerHTML = '';
+            els.noResultsDiv.classList.toggle('hidden', studentsToRender.length > 0);
+            
+            const statusStyles = {
+                'Excelling': { tag: 'bg-emerald-100 text-emerald-800', border: 'bg-emerald-400', ring: 'text-emerald-500', glow: 'rgba(16, 185, 129, 0.3)'},
+                'On Track': { tag: 'bg-blue-100 text-blue-800', border: 'bg-blue-500', ring: 'text-blue-500', glow: 'rgba(37, 99, 235, 0.3)' },
+                'Struggling': { tag: 'bg-red-100 text-red-800', border: 'bg-red-500', ring: 'text-red-500', glow: 'rgba(239, 68, 68, 0.3)' }
+            };
+
+            studentsToRender.forEach(student => {
+                const styles = statusStyles[student.status];
+                const score = parseInt(student.keyMetric.score, 10);
+                const radius = 34;
+                const circumference = 2 * Math.PI * radius;
+                const offset = circumference - (score / 100) * circumference;
+
+                const cardHTML = `
+                <div class="student-card glass-card rounded-xl shadow-sm cursor-pointer relative overflow-hidden" data-id="${student.id}" style="--glow-color: ${styles.glow};">
+                    <div class="absolute top-0 left-0 h-full w-1.5 ${styles.border}"></div>
+                    <div class="flex flex-col items-center text-center p-4 pl-6">
+                        <div class="relative w-20 h-20 mb-3">
+                            <svg class="w-full h-full" viewBox="0 0 80 80">
+                                <circle class="text-slate-200" stroke-width="5" stroke="currentColor" fill="transparent" r="${radius}" cx="40" cy="40" />
+                                <circle class="progress-ring__circle ${styles.ring}" stroke-width="5" stroke-linecap="round"
+                                    stroke-dasharray="${circumference}"
+                                    stroke-dashoffset="${offset}"
+                                    stroke="currentColor" fill="transparent" r="${radius}" cx="40" cy="40" />
+                            </svg>
+                            <img src="${student.avatar}" alt="${student.name}" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full object-cover ring-4 ring-white/60">
+                        </div>
+                        <h3 class="font-bold text-base text-slate-900 leading-tight truncate w-full">${student.name}</h3>
+                        <p class="text-sm text-slate-500">${student.grade}</p>
+                        <div class="mt-4 flex justify-center items-center gap-2">
+                            <span class="text-xs font-semibold px-3 py-1 rounded-full ${styles.tag}">${student.status}</span>
+                            <span class="text-xs font-bold text-slate-600 bg-slate-200 px-2 py-1 rounded-md">${student.keyMetric.score}</span>
+                        </div>
+                    </div>
+                </div>
+                `;
+                els.studentGrid.innerHTML += cardHTML;
+            });
+        }
+        
+        function renderGeneralAnalytics() {
+            if (students.length === 0) {
+                els.attendanceRate.textContent = '0%';
+                els.classAverage.textContent = '0%';
+                els.overallInsight.textContent = 'No student data to analyze.';
+                if(distributionChartInstance) distributionChartInstance.destroy();
+                return;
+            }
+            
+            // Attendance
+            const presentCount = students.filter(s => s.attendance === 'Present' || s.attendance === 'Late').length;
+            const attendanceTakenCount = students.filter(s => s.attendance !== null).length;
+            const attendanceRate = attendanceTakenCount > 0 ? Math.round((presentCount / attendanceTakenCount) * 100) : 0;
+            els.attendanceRate.textContent = `${attendanceRate}%`;
+            
+            // Score
+            const totalScore = students.reduce((sum, s) => sum + parseInt(s.keyMetric.score, 10), 0);
+            const averageScore = Math.round(totalScore / students.length);
+            els.classAverage.textContent = `${averageScore}%`;
+
+            // Chart
+            const distribution = students.reduce((acc, s) => {
+                acc[s.status] = (acc[s.status] || 0) + 1;
+                return acc;
+            }, {});
+
+            if(distributionChartInstance) distributionChartInstance.destroy();
+            distributionChartInstance = new Chart(els.distributionChartCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Excelling', 'On Track', 'Struggling'],
+                    datasets: [{
+                        data: [distribution['Excelling'] || 0, distribution['On Track'] || 0, distribution['Struggling'] || 0],
+                        backgroundColor: ['#22c55e', '#3b82f6', '#ef4444'],
+                        borderColor: 'rgba(255, 255, 255, 0.7)',
+                        borderWidth: 2,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12, padding: 15, color: '#334155' }
+                        },
+                        tooltip: {
+                            callbacks: { label: (c) => `${c.label}: ${c.parsed} student(s)` }
+                        }
+                    },
+                    onClick: (e, elements) => {
+                        if (elements.length > 0) {
+                            activeStatusFilter = distributionChartInstance.data.labels[elements[0].index];
+                            applyAllFiltersAndSorts();
+                            updateFilterUI();
+                        }
+                    }
+                }
+            });
+
+            // Insight
+            const strugglingCount = distribution['Struggling'] || 0;
+            if (strugglingCount > students.length * 0.3) {
+                els.overallInsight.textContent = `A significant number of students (${strugglingCount}) are struggling. A class-wide review may be needed.`;
+            } else if (strugglingCount > 0) {
+                els.overallInsight.textContent = `Focus on the ${strugglingCount} struggling student(s). Use the 'View Focus Group' button for a detailed list.`;
+            } else {
+                els.overallInsight.textContent = 'Students are performing well. Keep up the great work and consider advanced topics.';
+            }
+        }
+        
+        function updateFilterUI() {
+            if (activeStatusFilter) {
+                els.filterText.textContent = `Filtered by: ${activeStatusFilter}`;
+                els.filterStatusDiv.classList.remove('hidden');
+                els.filterStatusDiv.classList.add('flex');
+            } else {
+                els.filterStatusDiv.classList.add('hidden');
+                els.filterStatusDiv.classList.remove('flex');
+            }
+        }
+        
+        // --- RENDER & DISPLAY FUNCTIONS (CLASS) ---
+        function renderClasses() {
+            if (!els.classesList) return;
+            els.classesList.innerHTML = '';
+            
+            if (classes.length === 0) {
+                els.classesList.innerHTML = '<p class="text-sm text-slate-500 text-center">No classes yet. Create one to get started.</p>';
+                return;
+            }
+            
+            classes.forEach(cls => {
+                const isActive = cls.id === activeClassId;
+                const studentCount = cls.students ? cls.students.length : 0;
+                const item = document.createElement('div');
+                item.className = `class-item border-l-4 p-4 rounded-r-lg cursor-pointer ${isActive ? 'active' : 'border-slate-200 hover:bg-slate-100 hover:border-indigo-300'}`;
+                item.dataset.id = cls.id;
+                item.innerHTML = `
+                    <h4 class="font-semibold">${cls.name}</h4>
+                    <p class="text-sm">${studentCount} Students • ${cls.subject || 'No Subject'}</p>
+                `;
+                item.addEventListener('click', () => openClass(cls.id));
+                els.classesList.appendChild(item);
+            });
+        }
+        
+        function openClass(id){
+            activeClassId = id;
+            const cls = classes.find(c => c.id === id);
+            if (!cls) return;
+
+            // Load class data into global state
+            students = cls.students || [];
+
+            // Update UI
+            renderClasses(); // Re-render sidebar to show active state
+            els.emptyState.classList.add('hidden');
+            els.classView.classList.remove('hidden');
+            
+            if (els.deleteClassBtn) els.deleteClassBtn.classList.remove('hidden');
+            // Reset delete confirm
+            if (els.deleteConfirmBox) {
+                els.deleteConfirmBox.classList.add('hidden');
+                els.deleteConfirmBox.classList.remove('flex');
+            }
+            
+            // Set default tab
+            switchTab('roster');
+            
+            // Populate banner
+            els.classTitle.textContent = cls.name;
+            els.classMeta.textContent = [cls.section, cls.subject, cls.room].filter(Boolean).join(' • ');
+            
+            // Populate tabs
+            applyAllFiltersAndSorts(); // Renders student grid
+            renderGeneralAnalytics();
+            renderModules();
+            renderAttendance();
+        }
+
+        function backToList(){ 
+            activeClassId = null;
+            students = [];
+            
+            // Clear views
+            els.classView.classList.add('hidden'); 
+            els.emptyState.classList.remove('hidden');
+
+            if (els.deleteClassBtn) els.deleteClassBtn.classList.add('hidden');
+            // Reset delete confirm
+            if (els.deleteConfirmBox) {
+                els.deleteConfirmBox.classList.add('hidden');
+                els.deleteConfirmBox.classList.remove('flex');
+            }
+            
+            // Destroy charts
+            if(distributionChartInstance) distributionChartInstance.destroy();
+            if(masteryChartInstance) masteryChartInstance.destroy();
+            if(progressChartInstance) progressChartInstance.destroy();
+
+            // Clear filter state
+            activeStatusFilter = null;
+            els.searchBar.value = '';
+            currentSort = { key: 'name', order: 'asc' };
+            updateFilterUI();
+            
+            renderClasses();
+        }
+
+        // --- RENDER & DISPLAY FUNCTIONS (MODULES & ATTENDANCE) ---
+        function renderModules() {
+            const cls = classes.find(c => c.id === activeClassId);
+            if (!cls || !cls.modules || cls.modules.length === 0) {
+                els.modulesList.innerHTML = '<p class="text-slate-500 text-center py-4">No modules created yet.</p>';
+                return;
+            }
+            
+            els.modulesList.innerHTML = cls.modules.map(mod => `
+                <div class="bg-white border p-4 rounded-lg flex items-center justify-between">
+                    <div>
+                        <h4 class="font-semibold text-lg">${mod.title}</h4>
+                        <p class="text-sm text-slate-600">${mod.description || 'No description.'}</p>
+                        ${mod.dueDate ? `<p class="text-sm text-red-600 font-medium mt-1">Due: ${new Date(mod.dueDate).toLocaleDateString()}</p>` : ''}
+                    </div>
+                    <button class="text-sm text-slate-500 hover:text-red-600" onclick="deleteModule(${cls.id}, ${mod.id})">Delete</button>
+                </div>
+            `).join('');
+        }
+        
+        function renderAttendance() {
+            els.attendanceTitle.textContent = `Attendance for ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`;
+            if (students.length === 0) {
+                els.attendanceList.innerHTML = '<p class="text-slate-500 text-center py-4">No students in this class.</p>';
+                return;
+            }
+
+            els.attendanceList.innerHTML = students.map(s => {
+                const isPresent = s.attendance === 'Present';
+                const isAbsent = s.attendance === 'Absent';
+                const isLate = s.attendance === 'Late';
+                return `
+                <div class="bg-slate-50 border border-slate-200 p-3 rounded-lg flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <img src="${s.avatar}" class="w-10 h-10 rounded-full">
+                        <span class="font-medium">${s.name}</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="att-btn ${isPresent ? 'bg-green-600 text-white' : 'bg-white hover:bg-green-50 border'}" data-id="${s.id}" data-status="Present">Present</button>
+                        <button class="att-btn ${isAbsent ? 'bg-red-600 text-white' : 'bg-white hover:bg-red-50 border'}" data-id="${s.id}" data-status="Absent">Absent</button>
+                        <button class="att-btn ${isLate ? 'bg-amber-500 text-white' : 'bg-white hover:bg-amber-50 border'}" data-id="${s.id}" data-status="Late">Late</button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+            
+            // Add listeners to new buttons
+            els.attendanceList.querySelectorAll('.att-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = parseInt(e.target.dataset.id, 10);
+                    const status = e.target.dataset.status;
+                    setAttendance(id, status);
+                });
+            });
+        }
+
+        // --- EVENT LISTENERS ---
+        function initializeAllEventListeners() {
+            // Header Dropdown
+            if (els.profileDropdownButton) {
+                els.profileDropdownButton.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent window click from firing immediately
+                    els.profileDropdownMenu.classList.toggle('hidden');
+                });
+            }
+            
+            // Close dropdown when clicking outside
+            window.addEventListener('click', (e) => {
+                if (els.profileDropdownMenu && !els.profileDropdownMenu.classList.contains('hidden')) {
+                    if (!els.profileDropdownButton.contains(e.target) && !els.profileDropdownMenu.contains(e.target)) {
+                        els.profileDropdownMenu.classList.add('hidden');
+                    }
+                }
+            });
+
+            // Class management
+            if (els.createClassBtn) els.createClassBtn.addEventListener('click', openCreateClassModal);
+            if (els.emptyCreateBtn) els.emptyCreateBtn.addEventListener('click', openCreateClassModal);
+            if (els.createClassForm) els.createClassForm.addEventListener('submit', handleCreateClass);
+            if (els.cancelCreateClass) els.cancelCreateClass.addEventListener('click', closeCreateClassModal);
+            if (els.importSampleBtn) els.importSampleBtn.addEventListener('click', importSampleData);
+            if (els.backToListBtn) els.backToListBtn.addEventListener('click', backToList);
+
+            // Delete class button (confirmation + remove)
+            if (els.deleteClassBtn) {
+                // Click "Delete" button
+                els.deleteClassBtn.addEventListener('click', () => {
+                    els.deleteClassBtn.classList.add('hidden');
+                    els.deleteConfirmBox.classList.remove('hidden');
+                    els.deleteConfirmBox.classList.add('flex'); // Make it flex
+                });
+    
+                // Click "No"
+                els.confirmDeleteNo.addEventListener('click', () => {
+                    els.deleteConfirmBox.classList.add('hidden');
+                    els.deleteConfirmBox.classList.remove('flex');
+                    els.deleteClassBtn.classList.remove('hidden');
+                });
+    
+                // Click "Yes"
+                els.confirmDeleteYes.addEventListener('click', () => {
+                    const cls = classes.find(c => c.id === activeClassId);
+                    if (!cls) return;
+                    
+                    // This is the original deletion logic
+                    const idx = classes.findIndex(c => c.id === activeClassId);
+                    if (idx >= 0) {
+                        classes.splice(idx, 1);
+                        saveClasses();
+                        if (classes.length > 0) {
+                            openClass(classes[0].id);
+                        } else {
+                            backToList();
+                        }
+                    }
+                    
+                    // Reset the button state (though backToList/openClass will do this)
+                    els.deleteConfirmBox.classList.add('hidden');
+                    els.deleteConfirmBox.classList.remove('flex');
+                    els.deleteClassBtn.classList.remove('hidden'); 
+                });
+            }
+
+            // Tabs
+            els.tabButtons.forEach(btn => {
+                btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+            });
+            
+            // Roster filtering/sorting
+            if (els.searchBar) els.searchBar.addEventListener('input', () => applyAllFiltersAndSorts());
+            if (els.resetFilterBtn) els.resetFilterBtn.addEventListener('click', () => {
+                activeStatusFilter = null;
+                applyAllFiltersAndSorts();
+                updateFilterUI();
+            });
+            els.sortButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const sortKey = btn.dataset.sort;
+                    if (currentSort.key === sortKey) {
+                        currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSort.key = sortKey;
+                        currentSort.order = 'asc';
+                    }
+                    els.sortButtons.forEach(b => b.classList.remove('sort-btn-active'));
+                    btn.classList.add('sort-btn-active');
+                    applyAllFiltersAndSorts();
+                });
+            });
+
+            // Module management
+            if (els.addModuleBtn) els.addModuleBtn.addEventListener('click', openCreateModuleModal);
+            if (els.createModuleForm) els.createModuleForm.addEventListener('submit', handleCreateModule);
+            if (els.cancelCreateModule) els.cancelCreateModule.addEventListener('click', closeCreateModuleModal);
+
+            // Modals (general)
+            if (els.closeModalBtn) els.closeModalBtn.addEventListener('click', closeModal);
+            if (els.modalOverlay) els.modalOverlay.addEventListener('click', (e) => {
+                if (e.target === els.modalOverlay) closeModal();
+            });
+            if (els.printReportBtn) els.printReportBtn.addEventListener('click', () => window.print());
+            
+            // Student Modal
+            if (els.studentGrid) els.studentGrid.addEventListener('click', (e) => {
+                const card = e.target.closest('.student-card');
+                if (card) openStudentModal(parseInt(card.dataset.id, 10));
+            });
+            
+            // Focus Group Modal
+            if (els.focusGroupBtn) els.focusGroupBtn.addEventListener('click', openFocusGroupModal);
+        }
+
+        // --- DATA & STATE LOGIC ---
+        function applyAllFiltersAndSorts() {
+            let filteredStudents = [...students];
+
+            // 1. Filter by search
+            const searchTerm = els.searchBar.value.toLowerCase();
+            if (searchTerm) {
+                filteredStudents = filteredStudents.filter(s => s.name.toLowerCase().includes(searchTerm));
+            }
+
+            // 2. Filter by status
+            if (activeStatusFilter) {
+                filteredStudents = filteredStudents.filter(s => s.status === activeStatusFilter);
+            }
+
+            // 3. Sort
+            filteredStudents.sort((a, b) => {
+                const key = currentSort.key;
+                const order = currentSort.order;
+                let valA, valB;
+
+                if (key === 'name') {
+                    valA = a.name; valB = b.name;
+                    return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                }
+                if (key === 'status') {
+                    valA = a.status; valB = b.status;
+                    return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                }
+                if (key === 'grade') {
+                    valA = parseInt(a.keyMetric.score, 10);
+                    valB = parseInt(b.keyMetric.score, 10);
+                    return order === 'asc' ? valB - valA : valA - valB;
+                }
+                return 0;
+            });
+            
+            renderStudentGrid(filteredStudents);
+        }
+        
+        function switchTab(tabId) {
+            // Hide all panes
+            els.tabContent.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.add('hidden');
+                pane.classList.remove('active');
+            });
+            // Deactivate all buttons
+            els.tabButtons.forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.remove('border-indigo-600', 'text-indigo-600', 'font-semibold');
+            });
+            
+            // Show selected pane
+            const pane = document.getElementById(`${tabId}TabContent`);
+            if (pane) {
+                pane.classList.remove('hidden');
+                pane.classList.add('active');
+            }
+            // Activate selected button
+            const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+            if (btn) {
+                btn.classList.add('active');
+            }
+        }
+        
+        function setAttendance(studentId, status) {
+            const cls = classes.find(c => c.id === activeClassId);
+            if (!cls) return;
+            const student = cls.students.find(s => s.id === studentId);
+            if (!student) return;
+            
+            // Toggle off if clicking the same status
+            student.attendance = student.attendance === status ? null : status;
+            
+            saveClasses();
+            renderAttendance(); // Re-render list to show new state
+            renderGeneralAnalytics(); // Update stats
+        }
+        
+        function deleteModule(classId, moduleId) {
+            const cls = classes.find(c => c.id === classId);
+            if (!cls) return;
+            cls.modules = cls.modules.filter(m => m.id !== moduleId);
+            saveClasses();
+            renderModules();
+        }
+        
+        // --- MODAL: STUDENT DETAILS ---
+        function openStudentModal(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+            
+            els.modalTitle.textContent = student.name;
+            els.modalBody.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Left Column -->
+                    <div class="md:col-span-1 space-y-4">
+                        <img src="${student.avatar}" class="w-32 h-32 rounded-full mx-auto ring-4 ring-offset-2 ${student.status === 'Excelling' ? 'ring-emerald-400' : student.status === 'On Track' ? 'ring-blue-400' : 'ring-red-400'}">
+                        <div class="text-center">
+                            <p class="font-bold text-lg">${student.name}</p>
+                            <p class="text-slate-500">${student.grade}</p>
+                            <span class="text-sm font-semibold px-3 py-1 rounded-full mt-2 inline-block ${student.status === 'Excelling' ? 'bg-emerald-100 text-emerald-800' : student.status === 'On Track' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'}">${student.status}</span>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-slate-700 mb-2">Student Notes</h4>
+                            <textarea id="studentNotes" class="w-full p-2 border rounded-md text-sm min-h-[100px]">${student.notes || ''}</textarea>
+                            <button id="saveNotesBtn" class="mt-2 w-full text-sm bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-md transition">Save Notes</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Column -->
+                    <div class="md:col-span-2 space-y-6">
+                        <!-- Print Header -->
+                        <div class="print-only mb-6">
+                            <h2 class="text-3xl font-bold">${student.name} - Student Report</h2>
+                            <p class="text-xl">${els.classTitle.textContent}</p>
+                            <p class="text-lg">Report Date: ${new Date().toLocaleDateString()}</p>
+                        </div>
+                    
+                        <div>
+                            <h4 class="font-semibold text-slate-700 mb-2 text-lg">Personalized Insight</h4>
+                            <p class="text-slate-600 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">${student.analytics.insight}</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <div>
+                                <h4 class="font-semibold text-slate-700 mb-2">Skill Mastery</h4>
+                                <canvas id="masteryChart"></canvas>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-700 mb-2">Progress Over Time</h4>
+                                <canvas id="progressChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold text-slate-700 mb-2">Suggested Resources</h4>
+                            <ul class="list-disc list-inside space-y-1">
+                                ${student.analytics.suggestedResources.map(r => `<li><a href="${r.url}" target="_blank" class="text-indigo-600 hover:underline">${r.title}</a></li>`).join('')}
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold text-slate-700 mb-2">Learning Goal</h4>
+                            <input id="goalText" type="text" class="w-full p-2 border rounded-md mb-2 no-print" value="${student.analytics.goal.text || ''}" placeholder="Set a learning goal...">
+                            <div class="print-only mb-2">
+                                <p class="font-medium">Goal:</p>
+                                <p class="p-2 border rounded-md min-h-[40px]">${student.analytics.goal.text || 'No goal set.'}</p>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <input id="goalProgress" type="range" min="0" max="100" value="${student.analytics.goal.progress || 0}" class="w-full no-print">
+                                <span class="font-semibold w-12 text-right">${student.analytics.goal.progress || 0}%</span>
+                            </div>
+                            <button id="saveGoalBtn" class="mt-2 text-sm bg-slate-600 hover:bg-slate-700 text-white px-3 py-1.5 rounded-md transition no-print">Save Goal</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Show print button
+            els.printReportBtn.classList.remove('hidden');
+
+            // Render charts
+            if(masteryChartInstance) masteryChartInstance.destroy();
+            masteryChartInstance = new Chart(document.getElementById('masteryChart').getContext('2d'), {
+                type: 'radar',
+                data: {
+                    labels: Object.keys(student.analytics.mastery),
+                    datasets: [{
+                        label: 'Mastery',
+                        data: Object.values(student.analytics.mastery),
+                        fill: true,
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        borderColor: 'rgb(59, 130, 246)',
+                        pointBackgroundColor: 'rgb(59, 130, 246)',
+                    }]
+                },
+                options: {
+                    scales: { r: { beginAtZero: true, max: 100 } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+            
+            if(progressChartInstance) progressChartInstance.destroy();
+            progressChartInstance = new Chart(document.getElementById('progressChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: ['W1', 'W2', 'W3', 'W4', 'W5'],
+                    datasets: [{
+                        label: 'Score',
+                        data: student.analytics.progressHistory,
+                        borderColor: 'rgb(79, 70, 229)',
+                        tension: 0.1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    scales: { y: { beginAtZero: true, max: 100 } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Add event listeners for modal buttons
+            document.getElementById('saveNotesBtn').addEventListener('click', () => {
+                student.notes = document.getElementById('studentNotes').value;
+                saveClasses();
+                closeModal();
+            });
+            document.getElementById('saveGoalBtn').addEventListener('click', () => {
+                student.analytics.goal.text = document.getElementById('goalText').value;
+                student.analytics.goal.progress = document.getElementById('goalProgress').value;
+                saveClasses();
+                closeModal();
+            });
+
+            els.modalOverlay.classList.remove('hidden');
+            els.modalOverlay.classList.add('flex');
+        }
+        
+        // --- MODAL: FOCUS GROUP ---
+        function openFocusGroupModal() {
+            const strugglingStudents = students.filter(s => s.status === 'Struggling');
+            focusGroupSort = { key: 'name', order: 'asc' }; // Reset sort
+            
+            els.modalTitle.textContent = 'Focus Group (Struggling Students)';
+            els.modalBody.innerHTML = `
+                <p class="text-slate-600 mb-4">This is a list of students who are currently struggling. Use this to organize small group interventions.</p>
+                <div class="flex items-center gap-2 flex-wrap mb-4">
+                    <span class="text-sm font-semibold text-slate-600 mr-2">Sort by:</span>
+                    <button class="focus-sort-btn sort-btn-active" data-sort="name">Name</button>
+                    <button class="focus-sort-btn" data-sort="score">Score</button>
+                    <button class="focus-sort-btn" data-sort="grade">Grade</button>
+                </div>
+                <ul id="focusGroupList" class="divide-y divide-slate-200 max-h-[60vh] overflow-y-auto">
+                    ${strugglingStudents.length === 0 ? '<li class="text-center py-4 text-slate-500">No students are currently in the struggling category.</li>' : ''}
+                </ul>
+            `;
+            
+            if (strugglingStudents.length > 0) {
+                renderFocusGroupList(strugglingStudents);
+            }
+
+            // Add listeners
+            els.modalBody.querySelectorAll('.focus-sort-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    renderFocusGroupList(strugglingStudents, e.target.dataset.sort);
+                });
+            });
+
+            els.modalOverlay.classList.remove('hidden');
+            els.modalOverlay.classList.add('flex');
+        }
+
+        function renderFocusGroupList(strugglingStudents, sortKey = 'name') {
+            if (focusGroupSort.key === sortKey) {
+                focusGroupSort.order = focusGroupSort.order === 'asc' ? 'desc' : 'asc';
+            } else {
+                focusGroupSort.key = sortKey;
+                focusGroupSort.order = 'asc';
+            }
+            
+            strugglingStudents.sort((a, b) => {
+                if (sortKey === 'name') return focusGroupSort.order === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+                if (sortKey === 'grade') {
+                    const gradeA = parseInt(a.grade.replace('Grade ', '')); const gradeB = parseInt(b.grade.replace('Grade ', ''));
+                    return focusGroupSort.order === 'asc' ? gradeA - gradeB : gradeB - gradeA;
+                }
+                if (sortKey === 'score') {
+                    const scoreA = parseInt(a.keyMetric.score); const scoreB = parseInt(b.keyMetric.score);
+                    return focusGroupSort.order === 'asc' ? scoreA - scoreB : scoreB - scoreA;
+                }
+            });
+            
+            document.getElementById('focusGroupList').innerHTML = strugglingStudents.map(s => `
+                <li class="py-3 flex items-center space-x-4">
+                    <img src="${s.avatar}" class="w-10 h-10 rounded-full">
+                    <div class="flex-1">
+                        <p class="font-semibold text-slate-800">${s.name}</p>
+                        <p class="text-sm text-slate-500">${s.grade} - Score: ${s.keyMetric.score}</p>
+                    </div>
+                </li>
+            `).join('');
+
+            els.modalBody.querySelectorAll('.focus-sort-btn').forEach(btn => btn.classList.remove('sort-btn-active'));
+            els.modalBody.querySelector(`.focus-sort-btn[data-sort="${sortKey}"]`).classList.add('sort-btn-active');
+        }
+        
+        // --- MODAL: CREATE CLASS ---
+        function openCreateClassModal() {
+            els.createClassForm.reset();
+            els.createClassModal.classList.remove('hidden');
+            els.createClassModal.classList.add('flex');
+        }
+        function closeCreateClassModal() {
+            els.createClassModal.classList.add('hidden');
+            els.createClassModal.classList.remove('flex');
+        }
+        function handleCreateClass(e) {
+            e.preventDefault();
+            const formData = new FormData(els.createClassForm);
+            const newClass = {
+                id: Date.now(),
+                name: formData.get('name'),
+                section: formData.get('section'),
+                subject: formData.get('subject'),
+                room: formData.get('room'),
+                students: generateRandomStudents(Math.floor(Math.random() * 10) + 15),
+                modules: []
+            };
+            classes.push(newClass);
+            saveClasses();
+            renderClasses();
+            openClass(newClass.id); // Open the newly created class
+            closeCreateClassModal();
+        }
+
+        // --- MODAL: CREATE MODULE ---
+        function openCreateModuleModal() {
+            els.createModuleForm.reset();
+            els.createModuleModal.classList.remove('hidden');
+            els.createModuleModal.classList.add('flex');
+        }
+        function closeCreateModuleModal() {
+            els.createModuleModal.classList.add('hidden');
+            els.createModuleModal.classList.remove('flex');
+        }
+        function handleCreateModule(e) {
+            e.preventDefault();
+            const cls = classes.find(c => c.id === activeClassId);
+            if (!cls) return;
+            
+            const formData = new FormData(els.createModuleForm);
+            const newModule = {
+                id: Date.now(),
+                title: formData.get('title'),
+                description: formData.get('description'),
+                dueDate: formData.get('dueDate'),
+            };
+            
+            if (!cls.modules) cls.modules = [];
+            cls.modules.push(newModule);
+            
+            saveClasses();
+            renderModules();
+            closeCreateModuleModal();
+        }
+
+        // --- MODAL: GENERAL ---
+        function closeModal() {
+            els.modalOverlay.classList.add('hidden');
+            els.modalOverlay.classList.remove('flex');
+            els.printReportBtn.classList.add('hidden'); // Hide print btn
+            // Destroy charts to prevent memory leaks
+            if(masteryChartInstance) masteryChartInstance.destroy();
+            if(progressChartInstance) progressChartInstance.destroy();
+        }
+
+        // --- LOCALSTORAGE & DATA ---
+        function saveClasses() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(classes));
+        }
+        
+        function loadClasses() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            classes = data ? JSON.parse(data) : [];
+        }
+
+        function importSampleData() {
+            const sampleClass = {
+                id: Date.now(),
+                name: "Sample English Class",
+                section: "10-A",
+                subject: "English",
+                room: "Room 101",
+                students: generateRandomStudents(20),
+                modules: [
+                    { id: 1, title: "Module 1: Reading Comprehension", description: "Understanding main ideas.", dueDate: "2025-10-30" },
+                    { id: 2, title: "Module 2: Vocabulary Building", description: "Context clues and synonyms.", dueDate: "2025-11-05" }
+                ]
+            };
+            classes.push(sampleClass);
+            saveClasses();
+            renderClasses();
+            openClass(sampleClass.id);
+        }
+    </script>
+</body>
+</html>

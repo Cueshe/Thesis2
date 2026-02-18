@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #ffffff;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+        }
+        .subject-card {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        .subject-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.07);
+        }
+        .active-subject {
+            transform: scale(1.05) translateY(-5px);
+            box-shadow: 0 10px 25px -3px rgba(99, 102, 241, 0.4), 0 4px 6px -2px rgba(99, 102, 241, 0.2);
+            border-color: #818cf8; /* indigo-400 */
+        }
+        .active-category {
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.39);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 relative z-10">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-10">
+            <div class="flex items-center gap-6">
+                <div class="flex-shrink-0">
+                    <img src="./assets/logo.png" alt="Q2L Logo" class="h-16 w-auto">
+                </div>
+                <div>
+                    <h1 class="text-3xl md:text-4xl font-bold text-gray-800">Maayong Adlaw! </h1>
+                    <p class="text-gray-600 mt-1">Ready to learn something new today?</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span class="text-gray-700 font-semibold hidden sm:block">Alex Doe</span>
+                <img src="https://placehold.co/40x40/E2E8F0/4A5568?text=AD" alt="User Avatar" class="w-10 h-10 rounded-full ring-2 ring-white/50">
+            </div>
+        </header>
+
+        <main>
+            <!-- Subject Selection -->
+            <section>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 id="selectionHeader" class="text-2xl font-semibold text-gray-700">What should we study first?</h2>
+                    <button id="backButton" class="hidden text-indigo-600 font-semibold hover:text-indigo-800 transition-colors duration-300 flex items-center space-x-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                        <span>Change Subject</span>
+                    </button>
+                </div>
+                <div id="subjectGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <!-- English Card -->
+                    <div id="subjectEnglish" class="subject-card p-6 rounded-2xl shadow-lg cursor-pointer border-2 border-transparent">
+                        <div class="flex items-center space-x-4">
+                            <div class="text-5xl">🇺🇸</div>
+                            <div>
+                                <h3 class="font-bold text-xl text-gray-800">English</h3>
+                                <p class="text-gray-600">Grammar, Reading & more.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Filipino Card -->
+                    <div id="subjectFilipino" class="subject-card p-6 rounded-2xl shadow-lg cursor-pointer border-2 border-transparent">
+                        <div class="flex items-center space-x-4">
+                            <div class="text-5xl">🇵🇭</div>
+                            <div>
+                                <h3 class="font-bold text-xl text-gray-800">Filipino</h3>
+                                <p class="text-gray-600">Wika, Panitikan at iba pa.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- This container holds the sections that appear after a subject is chosen -->
+            <div id="lessonsContainer" class="opacity-0 max-h-0 overflow-hidden transition-all duration-700 ease-in-out space-y-10">
+                <!-- Category Lessons -->
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-4">Category Lessons for <span id="subjectName" class="text-indigo-600"></span></h2>
+                    <!-- Category Buttons -->
+                    <div class="flex space-x-2 sm:space-x-4 bg-white/70 backdrop-blur-sm p-2 rounded-xl w-full sm:w-auto sm:inline-flex mb-5 shadow-md">
+                        <button class="category-btn active-category flex-1 sm:flex-initial py-2 px-6 rounded-lg font-semibold transition-all duration-300" data-category="Easy">Easy</button>
+                        <button class="category-btn flex-1 sm:flex-initial py-2 px-6 rounded-lg font-semibold transition-all duration-300 text-gray-600 hover:text-black" data-category="Intermediate">Intermediate</button>
+                        <button class="category-btn flex-1 sm:flex-initial py-2 px-6 rounded-lg font-semibold transition-all duration-300 text-gray-600 hover:text-black" data-category="Hard">Hard</button>
+                    </div>
+                    <!-- Lesson Display Area -->
+                    <div id="lessonDisplay" class="bg-white/50 p-8 rounded-2xl shadow-inner border-2 border-dashed border-gray-300 min-h-[150px] flex items-center justify-center">
+                        <p class="text-gray-600 font-semibold text-lg">Showing <span id="categoryName" class="text-indigo-600">Easy</span> lessons.</p>
+                    </div>
+                </section>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // --- Element References ---
+        const subjectCards = document.querySelectorAll('.subject-card');
+        const lessonsContainer = document.getElementById('lessonsContainer');
+        const subjectNameSpan = document.getElementById('subjectName');
+        const categoryButtons = document.querySelectorAll('.category-btn');
+        const categoryNameSpan = document.getElementById('categoryName');
+        const lessonDisplay = document.getElementById('lessonDisplay');
+        const backButton = document.getElementById('backButton');
+        const selectionHeader = document.getElementById('selectionHeader');
+
+        // --- Subject Selection Logic ---
+        subjectCards.forEach(card => {
+            card.addEventListener('click', () => {
+                // Hide the unselected card
+                subjectCards.forEach(otherCard => {
+                    if (otherCard !== card) {
+                        otherCard.classList.add('hidden');
+                    }
+                });
+                
+                // Style the selected card
+                card.classList.add('active-subject');
+                
+                // Get the subject name and update the title
+                const subjectName = card.querySelector('h3').textContent;
+                subjectNameSpan.textContent = subjectName;
+
+                // Hide the header and show the back button
+                selectionHeader.classList.add('hidden');
+                backButton.classList.remove('hidden');
+
+                // Reveal the lessons container
+                lessonsContainer.classList.remove('opacity-0', 'max-h-0');
+                lessonsContainer.classList.add('max-h-[1000px]', 'mt-10'); 
+            });
+        });
+
+        // --- Back Button Logic ---
+        backButton.addEventListener('click', () => {
+            // Hide lessons container
+            lessonsContainer.classList.add('opacity-0', 'max-h-0');
+            lessonsContainer.classList.remove('max-h-[1000px]', 'mt-10');
+
+            // Show all subject cards and remove active state
+            subjectCards.forEach(card => {
+                card.classList.remove('hidden');
+                card.classList.remove('active-subject');
+            });
+
+            // Show the header and hide the back button
+            selectionHeader.classList.remove('hidden');
+            backButton.classList.add('hidden');
+        });
+
+        // --- Category Lessons Logic ---
+        categoryButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active class from all buttons
+                categoryButtons.forEach(btn => {
+                    btn.classList.remove('active-category');
+                    btn.classList.add('text-gray-600', 'hover:text-black');
+                });
+                
+                // Add active class to clicked button
+                button.classList.add('active-category');
+                button.classList.remove('text-gray-600', 'hover:text-black');
+
+                // Update the display text
+                const selectedCategory = button.getAttribute('data-category');
+                categoryNameSpan.textContent = selectedCategory;
+                lessonDisplay.querySelector('p').innerHTML = `Showing <span class="text-indigo-600 font-bold">${selectedCategory}</span> lessons.`;
+            });
+        });
+
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Q2L</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-light: #60a5fa;
+            --primary-dark: #1e40af;
+            --accent-color: #f59e0b;
+            --accent-light: #fcd34d;
+            --accent-dark: #d97706;
+            --bg-color: #ffffff;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+        }
+        .card {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <div class="flex items-center gap-6">
+                <div class="flex-shrink-0">
+                    <img src="./assets/logo.png" alt="Q2L Logo" class="h-16 w-auto">
+                </div>
+                <div>
+                    <h1 class="text-3xl md:text-4xl font-bold text-gray-800">Admin Dashboard</h1>
+                    <p class="text-gray-600 mt-1">Manage teacher accounts and system settings</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="text-gray-700 font-semibold hidden sm:block">Admin</span>
+                <a href="#" class="flex items-center gap-2 bg-white hover:bg-red-50 text-red-600 font-semibold px-4 py-2 rounded-lg transition border border-red-200 hover:border-red-300 shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span>Sign Out</span>
+                </a>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Teacher Registration Form -->
+            <div class="lg:col-span-2">
+                <div class="card rounded-xl p-6 mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Register New Teacher</h2>
+                    <form id="teacherForm" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                                <input type="text" name="firstName" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                                <input type="text" name="lastName" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input type="email" name="email" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                                <input type="tel" name="phone" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                                <select name="subject" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light">
+                                    <option value="">Select a subject</option>
+                                    <option value="english">English</option>
+                                    <option value="filipino">Filipino</option>
+                                    <option value="math">Mathematics</option>
+                                    <option value="science">Science</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Grade Level</label>
+                                <select name="gradeLevel" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light">
+                                    <option value="">Select grade level</option>
+                                    <option value="7">Grade 7</option>
+                                    <option value="8">Grade 8</option>
+                                    <option value="9">Grade 9</option>
+                                    <option value="10">Grade 10</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Initial Password</label>
+                            <div class="relative">
+                                <input type="password" name="password" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-light focus:border-primary-light">
+                                <button type="button" id="generatePassword" class="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-primary-color hover:text-primary-dark">
+                                    Generate
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Teacher will be prompted to change password on first login</p>
+                        </div>
+                        <div class="flex justify-end gap-3">
+                            <button type="reset" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                                Clear
+                            </button>
+                            <button type="submit" class="px-4 py-2 bg-primary-color text-white rounded-lg hover:bg-primary-dark">
+                                Register Teacher
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Quick Stats and Recent Activity -->
+            <div class="space-y-6">
+                <!-- Quick Stats -->
+                <div class="card rounded-xl p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Quick Stats</h2>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                            <div>
+                                <p class="text-sm text-blue-600 font-medium">Total Teachers</p>
+                                <p class="text-2xl font-bold text-blue-700" id="totalTeachers">0</p>
+                            </div>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                            <div>
+                                <p class="text-sm text-green-600 font-medium">Active Teachers</p>
+                                <p class="text-2xl font-bold text-green-700" id="activeTeachers">0</p>
+                            </div>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-amber-50 rounded-lg">
+                            <div>
+                                <p class="text-sm text-amber-600 font-medium">Pending Approvals</p>
+                                <p class="text-2xl font-bold text-amber-700" id="pendingApprovals">0</p>
+                            </div>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card rounded-xl p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Recent Activity</h2>
+                    <div class="space-y-4" id="recentActivity">
+                        <!-- Activity items will be dynamically added here -->
+                        <p class="text-gray-500 text-center py-4">No recent activity</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-xl p-6 max-w-md w-full">
+            <div class="text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-green-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Teacher Registered Successfully!</h3>
+                <p class="text-gray-600 mb-6">The teacher account has been created and an email with login credentials will be sent.</p>
+                <button onclick="closeSuccessModal()" class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock data for demonstration
+        let mockData = {
+            totalTeachers: 12,
+            activeTeachers: 10,
+            pendingApprovals: 2,
+            recentActivity: []
+        };
+
+        // Update stats in the UI
+        function updateStats() {
+            document.getElementById('totalTeachers').textContent = mockData.totalTeachers;
+            document.getElementById('activeTeachers').textContent = mockData.activeTeachers;
+            document.getElementById('pendingApprovals').textContent = mockData.pendingApprovals;
+        }
+
+        // Generate a random password
+        function generateRandomPassword() {
+            const length = 10;
+            const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+            let password = "";
+            for (let i = 0; i < length; i++) {
+                password += charset.charAt(Math.floor(Math.random() * charset.length));
+            }
+            return password;
+        }
+
+        // Add activity to recent activity list
+        function addActivity(activity) {
+            mockData.recentActivity.unshift({
+                text: activity,
+                timestamp: new Date()
+            });
+
+            // Update UI
+            const recentActivityDiv = document.getElementById('recentActivity');
+            if (mockData.recentActivity.length === 0) {
+                recentActivityDiv.innerHTML = '<p class="text-gray-500 text-center py-4">No recent activity</p>';
+            } else {
+                recentActivityDiv.innerHTML = mockData.recentActivity
+                    .slice(0, 5) // Show only last 5 activities
+                    .map(activity => `
+                        <div class="flex items-center gap-3 text-sm">
+                            <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                            <p class="flex-1 text-gray-600">${activity.text}</p>
+                            <span class="text-gray-400">${activity.timestamp.toLocaleTimeString()}</span>
+                        </div>
+                    `)
+                    .join('');
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('teacherForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const teacherData = Object.fromEntries(formData.entries());
+            
+            // In a real application, this would be sent to a server
+            console.log('Teacher registration data:', teacherData);
+            
+            // Update mock data
+            mockData.totalTeachers++;
+            mockData.pendingApprovals++;
+            
+            // Add activity
+            addActivity(`New teacher registered: ${teacherData.firstName} ${teacherData.lastName}`);
+            
+            // Update stats
+            updateStats();
+            
+            // Show success modal
+            document.getElementById('successModal').classList.remove('hidden');
+            document.getElementById('successModal').classList.add('flex');
+            
+            // Reset form
+            e.target.reset();
+        });
+
+        // Generate password button
+        document.getElementById('generatePassword').addEventListener('click', function() {
+            const passwordInput = document.querySelector('input[name="password"]');
+            passwordInput.value = generateRandomPassword();
+            passwordInput.type = 'text';
+            setTimeout(() => {
+                passwordInput.type = 'password';
+            }, 3000);
+        });
+
+        // Close success modal
+        function closeSuccessModal() {
+            document.getElementById('successModal').classList.add('hidden');
+            document.getElementById('successModal').classList.remove('flex');
+        }
+
+        // Initialize
+        updateStats();
+    </script>
+</body>
+</html>
